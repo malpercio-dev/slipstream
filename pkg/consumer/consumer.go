@@ -131,52 +131,52 @@ func (c *Consumer) HandleStreamEvent(ctx context.Context, xe *events.XRPCStreamE
 			return nil
 		}
 		return c.HandleRepoCommit(ctx, xe.RepoCommit)
-	case xe.RepoIdentity != nil:
-		eventsProcessedCounter.WithLabelValues("identity", c.SocketURL).Inc()
-		now := time.Now()
-		c.Progress.Update(xe.RepoIdentity.Seq, now)
-		// Parse time from the event time string
-		t, err := time.Parse(time.RFC3339, xe.RepoIdentity.Time)
-		if err != nil {
-			c.logger.Error("error parsing time", "error", err)
-			return nil
-		}
+	// case xe.RepoIdentity != nil:
+	// 	eventsProcessedCounter.WithLabelValues("identity", c.SocketURL).Inc()
+	// 	now := time.Now()
+	// 	c.Progress.Update(xe.RepoIdentity.Seq, now)
+	// 	// Parse time from the event time string
+	// 	t, err := time.Parse(time.RFC3339, xe.RepoIdentity.Time)
+	// 	if err != nil {
+	// 		c.logger.Error("error parsing time", "error", err)
+	// 		return nil
+	// 	}
 
-		// Emit identity update
-		e := models.Event{
-			Did:      xe.RepoIdentity.Did,
-			Kind:     models.EventKindIdentity,
-			Identity: xe.RepoIdentity,
-		}
-		// Send to the sequencer
-		c.buf <- &e
-		lastEvtCreatedAtGauge.WithLabelValues(c.SocketURL).Set(float64(t.UnixNano()))
-		lastEvtProcessedAtGauge.WithLabelValues(c.SocketURL).Set(float64(now.UnixNano()))
-		lastEvtCreatedEvtProcessedGapGauge.WithLabelValues(c.SocketURL).Set(float64(now.Sub(t).Seconds()))
-		lastSeqGauge.WithLabelValues(c.SocketURL).Set(float64(xe.RepoIdentity.Seq))
-	case xe.RepoAccount != nil:
-		eventsProcessedCounter.WithLabelValues("account", c.SocketURL).Inc()
-		now := time.Now()
-		c.Progress.Update(xe.RepoAccount.Seq, now)
-		// Parse time from the event time string
-		t, err := time.Parse(time.RFC3339, xe.RepoAccount.Time)
-		if err != nil {
-			c.logger.Error("error parsing time", "error", err)
-			return nil
-		}
+	// 	// Emit identity update
+	// 	e := models.Event{
+	// 		Did:      xe.RepoIdentity.Did,
+	// 		Kind:     models.EventKindIdentity,
+	// 		Identity: xe.RepoIdentity,
+	// 	}
+	// 	// Send to the sequencer
+	// 	c.buf <- &e
+	// 	lastEvtCreatedAtGauge.WithLabelValues(c.SocketURL).Set(float64(t.UnixNano()))
+	// 	lastEvtProcessedAtGauge.WithLabelValues(c.SocketURL).Set(float64(now.UnixNano()))
+	// 	lastEvtCreatedEvtProcessedGapGauge.WithLabelValues(c.SocketURL).Set(float64(now.Sub(t).Seconds()))
+	// 	lastSeqGauge.WithLabelValues(c.SocketURL).Set(float64(xe.RepoIdentity.Seq))
+	// case xe.RepoAccount != nil:
+	// 	eventsProcessedCounter.WithLabelValues("account", c.SocketURL).Inc()
+	// 	now := time.Now()
+	// 	c.Progress.Update(xe.RepoAccount.Seq, now)
+	// 	// Parse time from the event time string
+	// 	t, err := time.Parse(time.RFC3339, xe.RepoAccount.Time)
+	// 	if err != nil {
+	// 		c.logger.Error("error parsing time", "error", err)
+	// 		return nil
+	// 	}
 
-		// Emit account update
-		e := models.Event{
-			Did:     xe.RepoAccount.Did,
-			Kind:    models.EventKindAccount,
-			Account: xe.RepoAccount,
-		}
-		// Send to the sequencer
-		c.buf <- &e
-		lastEvtCreatedAtGauge.WithLabelValues(c.SocketURL).Set(float64(t.UnixNano()))
-		lastEvtProcessedAtGauge.WithLabelValues(c.SocketURL).Set(float64(now.UnixNano()))
-		lastEvtCreatedEvtProcessedGapGauge.WithLabelValues(c.SocketURL).Set(float64(now.Sub(t).Seconds()))
-		lastSeqGauge.WithLabelValues(c.SocketURL).Set(float64(xe.RepoAccount.Seq))
+	// 	// Emit account update
+	// 	e := models.Event{
+	// 		Did:     xe.RepoAccount.Did,
+	// 		Kind:    models.EventKindAccount,
+	// 		Account: xe.RepoAccount,
+	// 	}
+	// 	// Send to the sequencer
+	// 	c.buf <- &e
+	// 	lastEvtCreatedAtGauge.WithLabelValues(c.SocketURL).Set(float64(t.UnixNano()))
+	// 	lastEvtProcessedAtGauge.WithLabelValues(c.SocketURL).Set(float64(now.UnixNano()))
+	// 	lastEvtCreatedEvtProcessedGapGauge.WithLabelValues(c.SocketURL).Set(float64(now.Sub(t).Seconds()))
+	// 	lastSeqGauge.WithLabelValues(c.SocketURL).Set(float64(xe.RepoAccount.Seq))
 	case xe.Error != nil:
 		eventsProcessedCounter.WithLabelValues("error", c.SocketURL).Inc()
 		return fmt.Errorf("error from firehose: %s", xe.Error.Message)
@@ -217,6 +217,10 @@ func (c *Consumer) HandleRepoCommit(ctx context.Context, evt *comatproto.SyncSub
 
 	for _, op := range evt.Ops {
 		collection := strings.Split(op.Path, "/")[0]
+		if collection != "blue.place.pixel" {
+			continue
+		}
+
 		rkey := strings.Split(op.Path, "/")[1]
 
 		ek := repomgr.EventKind(op.Action)
