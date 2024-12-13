@@ -1,57 +1,52 @@
-# Jetstream
+# Slipstream
 
-Jetstream is a streaming service that consumes an ATProto `com.atproto.sync.subscribeRepos` stream and converts it into lightweight, friendly JSON.
+Slipstream is a streaming service that consumes an ATProto `com.atproto.sync.subscribeRepos` stream and converts it into lightweight, friendly JSON.
 
-Jetstream converts the CBOR-encoded MST blocks produced by the ATProto firehose and translates them into JSON objects that are easier to interface with using standard tooling available in programming languages.
+Slipstream converts the CBOR-encoded MST blocks produced by the ATProto firehose and translates them into JSON objects that are easier to interface with using standard tooling available in programming languages.
 
-### Public Instances
+Slipstream is a fork of [bluesky-social/jetstream](https://github.com/bluesky-social/jetstream), and primarily acts just like Jetstream, except in the following cases:
 
-As of writing, there are 4 official public Jetstream instances operated by Bluesky.
+Slipstream adds three environment variables that are not a part of upstream Jetstream.
 
-| Hostname                          | Region  |
-| --------------------------------- | ------- |
-| `jetstream1.us-east.bsky.network` | US-East |
-| `jetstream2.us-east.bsky.network` | US-East |
-| `jetstream1.us-west.bsky.network` | US-West |
-| `jetstream2.us-west.bsky.network` | US-West |
+Required:
 
-Connect to these instances over WSS: `wss://jetstream2.us-west.bsky.network/subscribe`
+`SLIPSTREAM_WANTED_COLLECTIONS` --  An space-delimited string of [Collection NSIDs](https://atproto.com/specs/nsid) to filter which records Slipstream should persist and emit.
 
-We will monitor and operate these instances and do our best to keep them available for public use by developers.
+Optional:
 
-Feel free to have multiple connections to Jetstream instances if needed. We encourage you to make use of Jetstream wherever you may consider using the `com.atproto.sync.subscribeRepos` firehose if you don't need the features of the full sync protocol.
+`SLIPSTREAM_SHOULD_EMIT_IDENTITY` -- whether or not Slipstream should persist and emit identity events. Default false.
 
-Because cursors for Jetstream are time-based (unix microseconds), you can use the same cursor for multiple instances to get roughly the same data.
+`SLIPSTREAM_SHOULD_EMIT_ACCOUNT` -- whether or not Slipstream should persist and emit account events. Default false.
 
-When switching between instances, it may be prudent to rewind your cursor a few seconds for gapless playback if you process events idempotently.
 
-## Running Jetstream
 
-To run Jetstream, make sure you have docker and docker compose installed and run `make up` in the repo root.
+## Running Slipstream
 
-This will pull the latest built image from GHCR and start a Jetstream instance at `http://localhost:6008`
+To run Slipstream, make sure you have docker and docker compose installed and run `make up` in the repo root.
 
-- To build Jetstream from source via Docker and start it up, run `make rebuild`
+This will pull the latest built image from GHCR and start a Slipstream instance at `http://localhost:6008`
+
+- To build Slipstream from source via Docker and start it up, run `make rebuild`
 
 Once started, you can connect to the event stream at: `ws://localhost:6008/subscribe`
 
 Prometheus metrics are exposed at `http://localhost:6009/metrics`
 
-A [Grafana Dashboard](#dashboard-preview) for Jetstream is available at `./grafana-dashboard.json` and should be easy to copy/paste into Grafana's dashboard import prompt.
+A [Grafana Dashboard](#dashboard-preview) for Slipstream is available at `./grafana-dashboard.json` and should be easy to copy/paste into Grafana's dashboard import prompt.
 
 - This dashboard has a few device-specific graphs for disk and network usage that require NodeExporter and may need to be tuned to your setup.
 
-## Consuming Jetstream
+## Consuming Slipstream
 
-To consume Jetstream you can use any websocket client
+To consume Slipstream you can use any websocket client
 
 Connect to `ws://localhost:6008/subscribe` to start the stream
 
 The following Query Parameters are supported:
 
-- `wantedCollections` - An array of [Collection NSIDs](https://atproto.com/specs/nsid) to filter which records you receive on your stream (default empty = all collections)
-  - `wantedCollections` supports NSID path prefixes i.e. `app.bsky.graph.*`, or `app.bsky.*`. The prefix before the `.*` must pass NSID validation and Jetstream **does not** support incomplete prefixes i.e. `app.bsky.graph.fo*`.
-  - Regardless of desired collections, all subscribers recieve Account and Identity events.
+- `wantedCollections` - An array of [Collection NSIDs](https://atproto.com/specs/nsid) to filter which records you receive on your stream (default empty = all collections). Note that no collections that Slipstream is not already configured to emit will be included.
+  - `wantedCollections` supports NSID path prefixes i.e. `app.bsky.graph.*`, or `app.bsky.*`. The prefix before the `.*` must pass NSID validation and Slipstream **does not** support incomplete prefixes i.e. `app.bsky.graph.fo*`.
+  - Depending upon Slipstream configuration, all subscribers recieve Account and Identity events.
   - You can specify at most 100 wanted collections/prefixes.
 - `wantedDids` - An array of Repo DIDs to filter which records you receive on your stream (Default empty = all repos)
   - You can specify at most 10,000 wanted DIDs.
@@ -64,10 +59,10 @@ The following Query Parameters are supported:
 
 ### Examples
 
-A simple example that hits the public instance looks like:
+A simple example that hits a local instance looks like:
 
 ```bash
-$ websocat wss://jetstream2.us-east.bsky.network/subscribe\?wantedCollections=app.bsky.feed.post
+$ websocat ws://localhost:6008/subscribe\?wantedCollections=app.bsky.feed.post
 ```
 
 A maximal example using all parameters looks like:
@@ -78,13 +73,13 @@ $ websocat "ws://localhost:6008/subscribe?wantedCollections=app.bsky.feed.post&w
 
 ### Example events:
 
-Jetstream events have 3 `kinds`s (so far):
+Slipstream events have 3 `kinds`s (so far):
 
 - `commit`: a Commit to a repo which involves either a create, update, or delete of a record
 - `identity`: an Identity update for a DID which indicates that you may want to purge an identity cache and revalidate the DID doc and handle
 - `account`: an Account event that indicates a change in account status i.e. from `active` to `deactivated`, or to `takendown` if the PDS has taken down the repo.
 
-Jetstream Commits have 3 `operations`:
+Slipstream Commits have 3 `operations`:
 
 - `create`: Create a new record with the contents provided
 - `update`: Update an existing record and replace it with the contents provided
@@ -165,9 +160,9 @@ Jetstream Commits have 3 `operations`:
 
 ### Compression
 
-Jetstream supports `zstd`-based compression of messages. Jetstream uses a custom dictionary for compression that can be found in `pkg/models/zstd_dictionary` and is required to decode compressed messages from the server.
+Slipstream supports `zstd`-based compression of messages. Slipstream uses a custom dictionary for compression that can be found in `pkg/models/zstd_dictionary` and is required to decode compressed messages from the server.
 
-`zstd` compressed Jetstream messages are ~56% smaller on average than the raw JSON version of the Jetstream firehose.
+`zstd` compressed Slipstream messages are ~56% smaller on average than the raw JSON version of the Slipstream firehose.
 
 The provided client library uses compression by default, using an embedded copy of the Dictionary from the `models` package.
 
@@ -175,7 +170,7 @@ To request a compressed stream, pass the `Socket-Encoding: zstd` header through 
 
 ### Subscriber Sourced messages
 
-Subscribers can send Text messages to Jetstream over the websocket using the `SubscriberSourcedMessage` framing below:
+Subscribers can send Text messages to Slipstream over the websocket using the `SubscriberSourcedMessage` framing below:
 
 ```go
 type SubscriberSourcedMessage struct {
@@ -229,4 +224,4 @@ The above payload will filter such that a client receives only posts, and only f
 
 ### Dashboard Preview
 
-![A screenshot of the Jetstream Grafana Dashboard](./docs/dash.png)
+![A screenshot of the Slipstream Grafana Dashboard](./docs/dash.png)
