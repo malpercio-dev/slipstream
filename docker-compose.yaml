@@ -6,7 +6,8 @@ services:
       dockerfile: Dockerfile
     restart: always
     container_name: jetstream
-    network_mode: host
+    ports:
+      - 6008:6008
     volumes:
       - ./data:/data
     environment:

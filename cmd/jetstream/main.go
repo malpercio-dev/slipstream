@@ -104,20 +104,20 @@ func main() {
 		&cli.BoolFlag{
 			Name:    "should-emit-identity",
 			Usage:   "whether to emit identity events",
-			Value:   true,
-			EnvVars: []string{"JETSTREAM_SHOULD_EMIT_IDENTITY"},
+			Value:   false,
+			EnvVars: []string{"SLIPSTREAM_SHOULD_EMIT_IDENTITY"},
 		},
 		&cli.BoolFlag{
 			Name:    "should-emit-account",
 			Usage:   "whether to emit account events",
-			Value:   true,
-			EnvVars: []string{"JETSTREAM_SHOULD_EMIT_ACCOUNT"},
+			Value:   false,
+			EnvVars: []string{"SLIPSTREAM_SHOULD_EMIT_ACCOUNT"},
 		},
 		&cli.StringFlag{
 			Name:    "wanted-collections",
-			Usage:   "Collections this Jetstream should emit, space delimited",
+			Usage:   "Collections this Slipstream should emit, space delimited",
 			Value:   ".*",
-			EnvVars: []string{"JETSTREAM_WANTED_COLLECTIONS"},
+			EnvVars: []string{"SLIPSTREAM_WANTED_COLLECTIONS"},
 		},
 	}
 
