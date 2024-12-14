@@ -264,9 +264,6 @@ func (c *Consumer) HandleRepoCommit(ctx context.Context, evt *comatproto.SyncSub
 	for _, op := range evt.Ops {
 		collection := strings.Split(op.Path, "/")[0]
 		if !c.WantsCollection(collection) {
-			if evt.Repo == "did:web:malpercio.dev" {
-				log.Info("skipped a message", "collection", collection)
-			}
 			continue
 		}
 
@@ -453,7 +450,12 @@ func (c *Consumer) WantsCollection(collection string) bool {
 		return true
 	}
 
-	// Start with the full paths for fast lookup
+	// Check for the root wildcard first, indicating all collections
+	if len(c.wantedCollections.Prefixes) == 1 && c.wantedCollections.Prefixes[0] == "." {
+		return true
+	}
+
+	// Next full paths for fast lookup
 	if len(c.wantedCollections.FullPaths) > 0 {
 		if _, match := c.wantedCollections.FullPaths[collection]; match {
 			return true

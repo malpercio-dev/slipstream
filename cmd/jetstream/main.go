@@ -116,7 +116,7 @@ func main() {
 		&cli.StringFlag{
 			Name:    "wanted-collections",
 			Usage:   "Collections this Slipstream should emit, space delimited",
-			Value:   "",
+			Value:   ".*",
 			EnvVars: []string{"SLIPSTREAM_WANTED_COLLECTIONS"},
 		},
 	}
